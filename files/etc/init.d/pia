@@ -1,0 +1,41 @@
+#!/bin/sh /etc/rc.common
+
+START=80
+APP=pia
+
+
+
+get_certificates() {
+	if [ ! -f /etc/openvpn/ca.rsa.2048.crt ]; then
+    		echo "File not found!"
+		wget --directory-prefix=/etc/openvpn/ https://www.privateinternetaccess.com/openvpn/ca.rsa.2048.crt
+    	fi
+
+	if [ ! -f /etc/openvpn/crl.rsa.2048.pem ]; then
+    		echo "File not found!"
+		wget --directory-prefix=/etc/openvpn/ https://www.privateinternetaccess.com/openvpn/crl.rsa.2048.pem
+    	fi
+}
+
+
+
+
+
+start() {
+	config_load openvpn 
+	local username
+	local password
+
+	config_get username "myvpnc" user 
+	config_get password "myvpnc" password
+	echo "$username" > /etc/openvpn/pialogin.pem
+	echo "$password" >> /etc/openvpn/pialogin.pem
+
+	get_certificates
+} 
+
+stop() {
+	return 0
+
+
+}
