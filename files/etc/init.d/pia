@@ -17,25 +17,74 @@ get_certificates() {
     	fi
 }
 
+write_vpn_config() {
+	uci set pia.pia.enabled=1
+	uci set pia.pia.client=1
+	uci set pia.pia.dev=tun
+	uci set pia.pia.proto=udp
+	uci set pia.pia.resolv_retry=infinite
+	uci set pia.pia.nobind=1
+	uci set pia.pia.persist_key=1
+	uci set pia.pia.persist_tun=1
+	uci set pia.pia.ca=/etc/openvpn/ca.rsa.2048.crt
+	uci set pia.pia.tls_client=1
+	uci set pia.pia.remote_cert_tls=server
+	uci set pia.pia.auth_user_pass=/etc/openvpn/pialogin.pem
+	uci set pia.pia.auth_nocache=1
+	uci set pia.pia.comp_lzo=yes
+	uci set pia.pia.verb=1
+	uci set pia.pia.reneg_sec=0
+	uci set pia.pia.crl_verify=/etc/openvpn/crl.rsa.2048.pem
+	uci set pia.pia.keepalive='10 120'
+	uci set pia.pia.float=1
+	uci set pia.pia.auth=sha1
+	uci set pia.pia.cipher=aes-128-cbc
+	uci set pia.pia.log=/tmp/openvpn.log
+	uci set pia.pia.boot=1
+	uci set pia.pia.remote='us-california.privateinternetaccess.com 1198'
+	uci commit pia
+}
 
+write_network_config() {
+	uci set network.pia=interface
+	uci set network.pia.proto=none
+	uci set network.pia.ifname=tun0
+	uci commit network
+}
 
-
+write_firewall_config() {
+	uci add firewall zone
+	uci set firewall.@zone[-1]=zone
+	uci set firewall.@zone[-1].name=pia_fw
+	uci set firewall.@zone[-1].network=pia
+	uci set firewall.@zone[-1].input=REJECT
+	uci set firewall.@zone[-1].output=ACCEPT
+	uci set firewall.@zone[-1].forward=REJECT
+	uci set firewall.@zone[-1].masq=1
+        uci set firewall.@zone[-1].mtu_fix=1
+        uci add firewall forwarding
+        uci set firewall.@forwarding[-1]=forwarding
+	uci set firewall.@forwarding[-1].src=lan
+	uci set firewall.@forwarding[-1].dest=pia_fw
+	uci commit firewall
+}
 
 start() {
 	config_load openvpn 
 	local username
 	local password
 
-	config_get username "myvpnc" user 
-	config_get password "myvpnc" password
+	config_get username "pia" user 
+	config_get password "pia" password
 	echo "$username" > /etc/openvpn/pialogin.pem
 	echo "$password" >> /etc/openvpn/pialogin.pem
 
 	get_certificates
+	write_vpn_config
+	# write_network_config
+	# write_firewall_config
 } 
 
 stop() {
 	return 0
-
-
 }
